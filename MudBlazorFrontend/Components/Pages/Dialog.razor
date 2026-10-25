@@ -1,0 +1,48 @@
+﻿@using MudBlazorFrontend.Components.Data;
+@inject IDialogService DialogService
+@inject HttpClient Http;
+
+<MudDialog>
+    <TitleContent>
+        A: @HistoryEvent.Name
+    </TitleContent>
+    <DialogContent>
+        B : @HistoryEvent.LongDescription
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Edit">Edit</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Close">Close</MudButton>
+        <MudButton Color="Color.Error" OnClick="Remove">Remove</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+	[CascadingParameter]
+	private IMudDialogInstance MudDialog { get; set; }
+
+	[Parameter]
+	public HistoryEvent HistoryEvent { get; set; } = new HistoryEvent();
+
+
+	private void Edit() => MudDialog.Close(DialogResult.Ok(true));
+	private void Close() => MudDialog.Close(DialogResult.Cancel);
+
+	private async Task Remove()
+	{
+		var parameters = new DialogParameters<DeleteDialog> { { x => x.Name, HistoryEvent.Name } };
+		var options = new DialogOptions { CloseOnEscapeKey = true, FullScreen = false };
+
+		var dialog = await DialogService.ShowAsync<DeleteDialog>("Delete Event", parameters, options);
+		var result = await dialog.Result;
+
+		if (result != null && !result.Canceled)
+		{
+			bool isSuccess = await Http.DeleteFromJsonAsync<bool>($"/api/historyevent/{HistoryEvent.ID}");
+			MudDialog.Close(DialogResult.Ok(false));
+		}
+		else
+		{
+			MudDialog.Close(DialogResult.Cancel);
+		}
+	}
+}

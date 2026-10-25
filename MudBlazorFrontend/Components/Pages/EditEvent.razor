@@ -1,0 +1,101 @@
+@page "/editevent/{ID}"
+@using MudBlazorFrontend.Components.Data
+@inject HttpClient Http
+
+<PageTitle>Timeline</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Edit history event</MudText>
+@if (historyEvent == null)
+{
+	<MudProgressCircular Color="Color.Default" Indeterminate="true" />
+}
+else
+{
+	<MudTextField @bind-Value="historyEvent.Name" T="string" Counter="100" MaxLength="100" Immediate="true" Label="Name" Variant="Variant.Text" />
+
+	<MudCheckBox @bind-Value="historyEvent.IsBeforeCommonEra" Label="Before Common Era" Color="Color.Primary"></MudCheckBox>
+	<MudSelect @bind-Value="historyEvent.DateType" Label="Select date type" AdornmentColor="Color.Secondary">
+		@foreach (DateType item in Enum.GetValues(typeof(DateType)))
+		{
+			<MudSelectItem Value="@item">@item</MudSelectItem>
+		}
+	</MudSelect>
+	<MudNumericField @bind-Value="historyEvent.LevelOfDetail" Label="Level of detail" />
+
+	<MudTextField T="string"
+				  @bind-Value="historyEvent.ShortDescription"
+				  MaxLength="100"
+				  Label="Short Description"
+				  Variant="Variant.Outlined"
+				  Lines="3"
+				  Sizing="InputSizing.Auto"
+				  Placeholder="Short Description..." />
+
+	<MudTextField T="string"
+				  @bind-Value="historyEvent.LongDescription"
+				  MaxLength="1000"
+				  Label="Long Description"
+				  Variant="Variant.Outlined"
+				  Lines="3"
+				  Sizing="InputSizing.Auto"
+				  Placeholder="Long Description..." />
+
+	<MudDatePicker Label="Event start date" Editable="true" @bind-Date="eventTimeStart" />
+	<MudDatePicker Label="Event end date" Editable="true" @bind-Date="eventTimeEnd" />
+	<MudButton Disabled="@isButtonDisabled" onclick="@Submit" Variant="Variant.Filled" Color="@color">Add Event</MudButton>
+}
+
+@code {
+	[Parameter]
+	public string ID { get; set; }
+
+	private HistoryEvent? historyEvent { get; set; }
+	private DateTime? eventTimeStart { get; set; } = DateTime.Now;
+	private DateTime? eventTimeEnd { get; set; }
+
+	private bool isButtonDisabled { get; set; }
+	private Color color { get; set; } = Color.Primary;
+
+	protected override async Task OnInitializedAsync()
+	{
+		if(Int32.TryParse(ID, out int eventID))
+			await GetHistoryEventFromApi(eventID);
+	}
+
+
+	private async Task GetHistoryEventFromApi(int eventID)
+	{
+		historyEvent = await Http.GetFromJsonAsync<HistoryEvent>($"/api/historyevent/{eventID}");
+		eventTimeStart = historyEvent.EventTimeStart;
+		eventTimeEnd = historyEvent.EventTimeEnd;
+	}
+
+	private async Task Submit()
+	{
+		if (historyEvent != null)
+		{
+			UpsertHistoryEventDto upsertHistoryEventDto = new(
+				Name: historyEvent.Name,
+				ShortDescription: historyEvent.ShortDescription,
+				LongDescription: historyEvent.LongDescription,
+				EventTimeStart: eventTimeStart.HasValue ? eventTimeStart.Value : DateTime.Now,
+				EventTimeEnd: eventTimeEnd,
+				IsBeforeCommonEra: historyEvent.IsBeforeCommonEra,
+				DateType: historyEvent.DateType,
+				LevelOfDetail: historyEvent.LevelOfDetail
+			);
+
+			isButtonDisabled = true;
+			var response = await Http.PutAsJsonAsync<UpsertHistoryEventDto>($"/api/historyevent/{historyEvent.ID}", upsertHistoryEventDto);
+			isButtonDisabled = false;
+			if (response.IsSuccessStatusCode)
+			{
+				color = Color.Success;
+			}
+			else
+			{
+				color = Color.Error;
+			}
+		}
+	}
+}

@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="Application/Application.csproj" Id="f55ff59f-f7c9-4201-88f1-b93c181cca99" />
+  <Project Path="HistoryTimeline.AppHost/HistoryTimeline.AppHost.csproj" />
+  <Project Path="HistoryTimeline.Server/HistoryTimeline.Server.csproj" />
+  <Project Path="Infrastructure/Infrastructure.csproj" Id="3c0b9ae7-d340-46f3-87fc-564e70773888" />
+  <Project Path="MudBlazorFrontend/MudBlazorFrontend.csproj" Id="bdb6d9c7-21f9-4bfc-a89f-e4e4822bcd6d" />
+</Solution>

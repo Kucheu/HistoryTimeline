@@ -1,0 +1,28 @@
+﻿@using MudBlazorFrontend.Components.Data;
+
+
+<MudDialog>
+    <TitleContent>
+        Delete @Name?
+    </TitleContent>
+    <DialogContent>
+        Are you sure you want to delete this event?
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Error" OnClick="Remove">Remove</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Close">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; }
+
+    [Parameter]
+    public String Name { get; set; } = String.Empty;
+
+
+    private void Close() => MudDialog.Close(DialogResult.Cancel);
+
+    private void Remove() => MudDialog.Close(DialogResult.Ok(true));
+}

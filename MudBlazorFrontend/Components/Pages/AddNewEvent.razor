@@ -1,0 +1,75 @@
+@page "/addnewevent"
+@using MudBlazorFrontend.Components.Data
+@inject HttpClient Http
+
+<PageTitle>Timeline</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Add new history event</MudText>
+
+<MudTextField @bind-Value="name" T="string" Counter="100" MaxLength="100" Immediate="true" Label="Name" Variant="Variant.Text" />
+ 
+<MudCheckBox @bind-Value="isBeforeCommonEra" Label="Before Common Era" Color="Color.Primary"></MudCheckBox>
+<MudSelect @bind-Value="dateType" Label="Select date type" AdornmentColor="Color.Secondary">
+    @foreach (DateType item in Enum.GetValues(typeof(DateType)))
+    {
+        <MudSelectItem Value="@item">@item</MudSelectItem>
+    }
+</MudSelect>
+<MudNumericField @bind-Value="levelOfDetail" Label="Level of detail" />
+
+<MudTextField T="string"
+              @bind-Value="shortDescription"
+              MaxLength="100"
+              Label="Short Description"
+              Variant="Variant.Outlined"
+              Lines="3"
+              Sizing="InputSizing.Auto"
+              Placeholder="Short Description..." />
+
+<MudTextField T="string"
+              @bind-Value="longDescription"
+              MaxLength="1000"
+              Label="Long Description"
+              Variant="Variant.Outlined"
+              Lines="3"
+              Sizing="InputSizing.Auto"
+              Placeholder="Long Description..." />
+
+              <MudButton Disabled="@isButtonDisabled" onclick="@Submit" Variant="Variant.Filled" Color="@color">Add Event</MudButton>
+
+    @code {
+    private int levelOfDetail;
+    private string name = String.Empty;
+    private string shortDescription = String.Empty;
+    private string longDescription = String.Empty;
+    private bool isBeforeCommonEra = false;
+    private DateType dateType { get; set; } = DateType.year;
+    private bool isButtonDisabled { get; set; }
+    private Color color { get; set; } = Color.Primary;
+
+    private async Task Submit()
+    {
+        UpsertHistoryEventDto eventToSend = new
+            (
+                Name : name,
+                ShortDescription : shortDescription,
+                LongDescription : longDescription,
+                DateType : dateType,
+                LevelOfDetail : levelOfDetail,
+                IsBeforeCommonEra : isBeforeCommonEra,
+                EventTimeStart : DateTime.UtcNow,
+                EventTimeEnd : DateTime.UtcNow
+                );
+        isButtonDisabled = true;
+        var response = await Http.PostAsJsonAsync<UpsertHistoryEventDto>($"/api/historyevent", eventToSend);
+        isButtonDisabled = false;
+        if(response.IsSuccessStatusCode)
+        {
+            color = Color.Success;
+        }
+        else
+        {
+            color = Color.Error;
+        }
+    }
+}

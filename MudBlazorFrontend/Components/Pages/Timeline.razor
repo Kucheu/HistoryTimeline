@@ -1,0 +1,125 @@
+@page "/"
+@inject IDialogService DialogService
+@using MudBlazorFrontend.Components.Data;
+@inject HttpClient Http
+@inject NavigationManager navigationManager;
+
+<PageTitle>Timeline</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Japan history timeline</MudText>
+<MudSlider Value="currentLevelOfDetail" TickMarks="true" ValueChanged="(int x) => OnLevelOfDetailChange(x)" Step="1" Min="0" Max=@maxLevelOfDetail" Color="Color.Info">Level Of Detail: @currentLevelOfDetail.ToString()</MudSlider>
+@if (historyEvents == null)
+{
+	<MudProgressCircular Color="Color.Default" Indeterminate="true" />
+}
+else
+{
+	<MudTimeline>
+		@for (int i = 0; i < historyEvents.Length; i += 1)
+		{
+			int localVariable = i;
+			Color OptionColor = @GetColorFromName(@historyEvents[localVariable].Name);
+			<MudButton OnClick="() => OpenDialog(localVariable)">
+				<MudTimelineItem Color="OptionColor" Size="Size.Small" TimelineAlign="TimelineAlign.End">
+					<ItemOpposite>
+						@if (historyEvents[localVariable].IsBeforeCommonEra)
+						{
+							<MudText Color="OptionColor" Typo="Typo.h5">@historyEvents[localVariable].EventTimeStart.Year p.n.e.</MudText>
+						}
+						else
+						{
+							<MudText Color="OptionColor" Typo="Typo.h5">@historyEvents[localVariable].EventTimeStart.Year</MudText>
+						}
+					</ItemOpposite>
+					<ItemContent>
+						<MudText Color="OptionColor" Typo="Typo.h6" GutterBottom="true">@historyEvents[localVariable].Name</MudText>
+						<MudText>@historyEvents[localVariable].ShortDescription</MudText>
+					</ItemContent>
+				</MudTimelineItem>
+			</MudButton>
+		}
+	</MudTimeline>
+}
+
+<MudFabMenu StartIcon="@Icons.Material.Outlined.Add" Color="Color.Primary" Fixed="true" Href="addnewevent">
+</MudFabMenu>
+
+@code {
+	public HistoryEvent[]? historyEvents { get; set; }
+	public int currentLevelOfDetail { get; set; } = 0;
+	public int maxLevelOfDetail { get; set; } = 0;
+
+	protected override async Task OnInitializedAsync()
+	{
+		if (historyEvents is null)
+		{
+			await Task.Delay(300);
+			await GetMaxLevelOfDetail();
+			await GetHistoryEventsFromApi();
+		}
+
+	}
+	private async Task GetMaxLevelOfDetail()
+	{
+		maxLevelOfDetail = await Http.GetFromJsonAsync<int>("/api/levelofdetails");
+		if (currentLevelOfDetail > maxLevelOfDetail)
+			currentLevelOfDetail = 0;
+	}
+
+	private async Task GetHistoryEventsFromApi()
+	{
+		historyEvents = await Http.GetFromJsonAsync<HistoryEvent[]>($"/api/historyevents/{currentLevelOfDetail}");
+
+		if (historyEvents != null)
+			historyEvents = historyEvents
+				.OrderByDescending(x => x.IsBeforeCommonEra)
+				.ThenBy(x => x.IsBeforeCommonEra ? x.EventTimeStart : DateTime.MaxValue)
+				.ThenByDescending(x => x.IsBeforeCommonEra ? DateTime.MinValue : x.EventTimeStart)
+				.ToArray();
+	}
+
+	private async Task OnLevelOfDetailChange(int value)
+	{
+		historyEvents = null;
+		currentLevelOfDetail = value;
+		await GetHistoryEventsFromApi();
+	}
+
+	private async Task OpenDialog(int pointer)
+	{
+		var parameters = new DialogParameters<Dialog> { { x => x.HistoryEvent, historyEvents[pointer] } };
+		var options = new DialogOptions { CloseOnEscapeKey = true, FullScreen = true };
+
+		var dialog = await DialogService.ShowAsync<Dialog>("Simple Dialog", parameters, options);
+		var result = await dialog.Result;
+
+		if (result != null && !result.Canceled)
+		{
+			bool edit = (bool)(result.Data ?? false);
+			if (edit)
+			{
+				navigationManager.NavigateTo($"/editevent/{historyEvents[pointer].ID}");
+			}
+			else
+			{
+				await GetMaxLevelOfDetail();
+				await GetHistoryEventsFromApi();
+			}
+		}
+	}
+
+	protected static Color GetColorFromName(string name)
+	{
+		switch (name)
+		{
+			case "Attack":
+				return Color.Error;
+			case "Defense":
+				return Color.Info;
+			case "Event":
+				return Color.Success;
+		}
+
+		return Color.Default;
+	}
+}

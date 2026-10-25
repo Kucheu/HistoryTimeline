@@ -1,0 +1,5 @@
+{
+  "appHost": {
+    "path": "HistoryTimeline.AppHost/HistoryTimeline.AppHost.csproj"
+  }
+}
